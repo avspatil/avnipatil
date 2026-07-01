@@ -57,6 +57,11 @@
 
 body {
   margin: 0;
+  cursor: none;
+}
+
+a, button, input, textarea, select {
+  cursor: none;
 }
 
 h1,
