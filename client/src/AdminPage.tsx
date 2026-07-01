@@ -48,6 +48,33 @@ const AdminPage: React.FC = () => {
   });
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
 
+  const [resumeName, setResumeName] = useState(() => {
+    return localStorage.getItem("resume-name") || "";
+  });
+
+  const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      localStorage.setItem("resume-pdf", dataUrl);
+      localStorage.setItem("resume-name", file.name);
+      setResumeName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deleteResume = () => {
+    localStorage.removeItem("resume-pdf");
+    localStorage.removeItem("resume-name");
+    setResumeName("");
+  };
+
   const handleLogin = async () => {
     const hash = await generateSHA256(password);
     if (hash === ADMIN_PASSWORD) {
@@ -195,6 +222,20 @@ const AdminPage: React.FC = () => {
               <button onClick={() => deleteProject(p.id)}>Delete</button>
             </div>
           ))
+        )}
+      </div>
+
+      <hr className="admin-section-divider" />
+
+      <h2>Resume</h2>
+
+      <div className="admin-form">
+        <input type="file" accept=".pdf" onChange={handleResumeUpload} />
+        {resumeName && (
+          <div className="admin-resume-info">
+            <span>Uploaded: {resumeName}</span>
+            <button onClick={deleteResume}>Delete Resume</button>
+          </div>
         )}
       </div>
 

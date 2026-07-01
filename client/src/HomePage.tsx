@@ -149,7 +149,15 @@ const HomePage: React.FC = () => {
             I am a student passionate about building scalable systems...
           </p>
 
-          <button className="resume-btn">Resume</button>
+          <button
+            className="resume-btn"
+            onClick={() => {
+              const url = localStorage.getItem("resume-pdf");
+              if (url) window.open(url, "_blank");
+            }}
+          >
+            Resume
+          </button>
         </div>
       </section>
 
