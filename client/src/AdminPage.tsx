@@ -19,7 +19,14 @@ interface NewsEntry {
   tagColor: string;
 }
 
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "3724cc3ec590b6bace45c87db054f85e80c409234f5f1a2ccdd55204a9767b85";
+const generateSHA256 = async (input: string) => {
+    const utf8 = new TextEncoder().encode(input);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  };
 
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,8 +48,9 @@ const AdminPage: React.FC = () => {
   });
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
+  const handleLogin = async () => {
+    const hash = await generateSHA256(password);
+    if (hash === ADMIN_PASSWORD) {
       sessionStorage.setItem("admin-auth", "true");
       setAuthenticated(true);
       setError("");
