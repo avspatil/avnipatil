@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-const filePath = path.join(__dirname, "../data/table.json");
+const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
+const filePath = path.join(PROJECT_ROOT, "src", "data", "table.json");
 
 export function readTable() {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));
