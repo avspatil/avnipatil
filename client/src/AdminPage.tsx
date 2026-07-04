@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./App.css";
+
+const API = "http://localhost:3001";
+
+interface ProjectLink {
+  label: string;
+  url: string;
+}
 
 interface ResearchProject {
   id: string;
@@ -8,7 +15,7 @@ interface ResearchProject {
   author: string;
   description: string;
   date: string;
-  links: string[];
+  links: ProjectLink[];
 }
 
 interface NewsEntry {
@@ -40,7 +47,7 @@ const AdminPage: React.FC = () => {
     const saved = localStorage.getItem("research-projects");
     return saved ? JSON.parse(saved) : [];
   });
-  const [form, setForm] = useState({ title: "", author: "", description: "", date: "", links: [""] });
+  const [form, setForm] = useState({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
 
   const [news, setNews] = useState<NewsEntry[]>(() => {
     const saved = localStorage.getItem("personal-news");
@@ -48,11 +55,18 @@ const AdminPage: React.FC = () => {
   });
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
 
-  const [resumeName, setResumeName] = useState(() => {
-    return localStorage.getItem("resume-name") || "";
-  });
+  const [resumeName, setResumeName] = useState("");
 
-  const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    fetch(`${API}/resume`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.name) setResumeName(data.name);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== "application/pdf") {
@@ -60,19 +74,32 @@ const AdminPage: React.FC = () => {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = reader.result as string;
-      localStorage.setItem("resume-pdf", dataUrl);
-      localStorage.setItem("resume-name", file.name);
-      setResumeName(file.name);
+      try {
+        const res = await fetch(`${API}/resume`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdf: dataUrl, name: file.name }),
+        });
+        if (!res.ok) throw new Error("Upload failed");
+        setResumeName(file.name);
+      } catch {
+        alert("Failed to upload resume. Check that the server is running.");
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const deleteResume = () => {
-    localStorage.removeItem("resume-pdf");
-    localStorage.removeItem("resume-name");
-    setResumeName("");
+  const deleteResume = async () => {
+    try {
+      await fetch(`${API}/resume`, {
+        method: "DELETE",
+      });
+      setResumeName("");
+    } catch {
+      alert("Failed to delete resume.");
+    }
   };
 
   const handleLogin = async () => {
@@ -86,14 +113,14 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const updateLink = (i: number, value: string) => {
+  const updateLink = (i: number, field: "label" | "url", value: string) => {
     const links = [...form.links];
-    links[i] = value;
+    links[i] = { ...links[i], [field]: value };
     setForm({ ...form, links });
   };
 
   const addLink = () => {
-    setForm({ ...form, links: [...form.links, ""] });
+    setForm({ ...form, links: [...form.links, { label: "", url: "" }] });
   };
 
   const removeLink = (i: number) => {
@@ -106,12 +133,12 @@ const AdminPage: React.FC = () => {
     const project: ResearchProject = {
       id: crypto.randomUUID(),
       ...form,
-      links: form.links.filter(Boolean),
+      links: form.links.filter((l) => l.url.trim()),
     };
     const updated = [...projects, project];
     setProjects(updated);
     localStorage.setItem("research-projects", JSON.stringify(updated));
-    setForm({ title: "", author: "", description: "", date: "", links: [""] });
+    setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
   };
 
   const deleteProject = (id: string) => {
@@ -194,9 +221,14 @@ const AdminPage: React.FC = () => {
           {form.links.map((link, i) => (
             <div key={i} className="admin-link-row">
               <input
+                placeholder={`Link ${i + 1} (display text)`}
+                value={link.label}
+                onChange={(e) => updateLink(i, "label", e.target.value)}
+              />
+              <input
                 placeholder={`Link ${i + 1} (URL)`}
-                value={link}
-                onChange={(e) => updateLink(i, e.target.value)}
+                value={link.url}
+                onChange={(e) => updateLink(i, "url", e.target.value)}
               />
               {form.links.length > 1 && (
                 <button className="remove-link" onClick={() => removeLink(i)}>

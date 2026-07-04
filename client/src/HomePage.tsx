@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+interface ProjectLink {
+  label: string;
+  url: string;
+}
+
 interface ResearchProject {
   id: string;
   title: string;
   author: string;
   description: string;
   date: string;
-  links: string[];
+  links: ProjectLink[];
 }
 
 interface NewsEntry {
@@ -28,10 +33,13 @@ function loadNews(): NewsEntry[] {
   return saved ? JSON.parse(saved) : [];
 }
 
+const API = "http://localhost:3001";
+
 const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [projects, setProjects] = useState<ResearchProject[]>(loadProjects);
   const [news, setNews] = useState<NewsEntry[]>(loadNews);
+  const [resumePdf, setResumePdf] = useState<string | null>(null);
 
   useEffect(() => {
     const onStorage = () => {
@@ -40,6 +48,15 @@ const HomePage: React.FC = () => {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/resume`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.pdf) setResumePdf(data.pdf);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -152,8 +169,17 @@ const HomePage: React.FC = () => {
           <button
             className="resume-btn"
             onClick={() => {
-              const url = localStorage.getItem("resume-pdf");
-              if (url) window.open(url, "_blank");
+              if (!resumePdf) return;
+              const byteString = atob(resumePdf.split(",")[1]);
+              const mime = resumePdf.split(",")[0].split(":")[1].split(";")[0];
+              const ab = new ArrayBuffer(byteString.length);
+              const ia = new Uint8Array(ab);
+              for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+              }
+              const blob = new Blob([ab], { type: mime });
+              const url = URL.createObjectURL(blob);
+              window.open(url, "_blank");
             }}
           >
             Resume
@@ -178,8 +204,8 @@ const HomePage: React.FC = () => {
                 {p.links && p.links.length > 0 && (
                   <div className="project-links">
                     {p.links.map((link, i) => (
-                      <a key={i} href={link} target="_blank" className="project-link">
-                        Link {i + 1}
+                      <a key={i} href={link.url} target="_blank" className="project-link">
+                        {link.label || `Link ${i + 1}`}
                       </a>
                     ))}
                   </div>

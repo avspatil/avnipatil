@@ -7,9 +7,11 @@
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "express-session"]
   },
   "include": ["src"],
+  "typeRoots": ["./node_modules/@types"],
   "noImplicitReturns": true,
     // "noImplicitOverride": true,
     "noUnusedLocals": true,
