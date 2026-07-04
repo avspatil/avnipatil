@@ -39,8 +39,6 @@ const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [projects, setProjects] = useState<ResearchProject[]>(loadProjects);
   const [news, setNews] = useState<NewsEntry[]>(loadNews);
-  const [resumePdf, setResumePdf] = useState<string | null>(null);
-
   useEffect(() => {
     const onStorage = () => {
       setProjects(loadProjects());
@@ -48,15 +46,6 @@ const HomePage: React.FC = () => {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  useEffect(() => {
-    fetch(`${API}/resume`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.pdf) setResumePdf(data.pdf);
-      })
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -157,7 +146,7 @@ const HomePage: React.FC = () => {
 
           <div className="icons">
             <a href="mailto:example@email.com" className="icon">✉</a>
-            <a href="https://github.com/" target="_blank" className="icon">⌘</a>
+            <a href="https://github.com/avspatil" target="_blank" className="icon">⌘</a>
           </div>
         </div>
 
@@ -169,17 +158,7 @@ const HomePage: React.FC = () => {
           <button
             className="resume-btn"
             onClick={() => {
-              if (!resumePdf) return;
-              const byteString = atob(resumePdf.split(",")[1]);
-              const mime = resumePdf.split(",")[0].split(":")[1].split(";")[0];
-              const ab = new ArrayBuffer(byteString.length);
-              const ia = new Uint8Array(ab);
-              for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-              }
-              const blob = new Blob([ab], { type: mime });
-              const url = URL.createObjectURL(blob);
-              window.open(url, "_blank");
+              window.open(`${API}/resume/pdf`, "_blank");
             }}
           >
             Resume

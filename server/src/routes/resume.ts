@@ -37,6 +37,19 @@ router.get("/", (req, res) => {
   res.json(resume);
 });
 
+router.get("/pdf", (req, res) => {
+  const resume = readResume();
+  if (!resume || !resume.pdf) {
+    return res.status(404).send("No resume uploaded");
+  }
+  const parts = resume.pdf.split(",");
+  const mime = parts[0].split(":")[1].split(";")[0];
+  const buf = Buffer.from(parts[1], "base64");
+  res.set("Content-Type", mime);
+  res.set("Content-Disposition", `inline; filename="${resume.name}"`);
+  res.send(buf);
+});
+
 router.post("/", (req, res) => {
   const { pdf, name } = req.body;
   if (!pdf || !name) {

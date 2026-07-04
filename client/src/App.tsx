@@ -104,7 +104,7 @@ const App: React.FC = () => {
 
           <div className="icons">
             <a href="mailto:example@email.com" className="icon">✉</a>
-            <a href="https://github.com/" target="_blank" className="icon">⌘</a>
+            <a href="https://github.com/avspatil" target="_blank" className="icon">⌘</a>
           </div>
         </div>
 
