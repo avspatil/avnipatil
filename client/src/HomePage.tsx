@@ -33,8 +33,6 @@ function loadNews(): NewsEntry[] {
   return saved ? JSON.parse(saved) : [];
 }
 
-const API = "http://localhost:3001";
-
 const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [projects, setProjects] = useState<ResearchProject[]>(loadProjects);
@@ -158,7 +156,7 @@ const HomePage: React.FC = () => {
           <button
             className="resume-btn"
             onClick={() => {
-              window.open(`${API}/resume/pdf`, "_blank");
+              window.open(`/resume/pdf`, "_blank");
             }}
           >
             Resume

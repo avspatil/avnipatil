@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./App.css";
 
-const API = "http://localhost:3001";
-
 interface ProjectLink {
   label: string;
   url: string;
@@ -48,6 +46,7 @@ const AdminPage: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [form, setForm] = useState({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [news, setNews] = useState<NewsEntry[]>(() => {
     const saved = localStorage.getItem("personal-news");
@@ -58,7 +57,7 @@ const AdminPage: React.FC = () => {
   const [resumeName, setResumeName] = useState("");
 
   useEffect(() => {
-    fetch(`${API}/resume`)
+    fetch(`/resume`)
       .then((r) => r.json())
       .then((data) => {
         if (data.name) setResumeName(data.name);
@@ -77,7 +76,7 @@ const AdminPage: React.FC = () => {
     reader.onload = async () => {
       const dataUrl = reader.result as string;
       try {
-        const res = await fetch(`${API}/resume`, {
+        const res = await fetch(`/resume`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pdf: dataUrl, name: file.name }),
@@ -93,7 +92,7 @@ const AdminPage: React.FC = () => {
 
   const deleteResume = async () => {
     try {
-      await fetch(`${API}/resume`, {
+      await fetch(`/resume`, {
         method: "DELETE",
       });
       setResumeName("");
@@ -130,19 +129,47 @@ const AdminPage: React.FC = () => {
 
   const addProject = () => {
     if (!form.title.trim()) return;
-    const project: ResearchProject = {
-      id: crypto.randomUUID(),
-      ...form,
-      links: form.links.filter((l) => l.url.trim()),
-    };
-    const updated = [...projects, project];
+    const links = form.links.filter((l) => l.url.trim());
+    let updated: ResearchProject[];
+    if (editingId) {
+      updated = projects.map((p) =>
+        p.id === editingId ? { ...p, ...form, links } : p
+      );
+      setEditingId(null);
+    } else {
+      const project: ResearchProject = {
+        id: crypto.randomUUID(),
+        ...form,
+        links,
+      };
+      updated = [...projects, project];
+    }
     setProjects(updated);
     localStorage.setItem("research-projects", JSON.stringify(updated));
     setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
   };
 
+  const editProject = (p: ResearchProject) => {
+    setForm({ title: p.title, author: p.author, description: p.description, date: p.date, links: p.links.length ? p.links : [{ label: "", url: "" }] });
+    setEditingId(p.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
+  };
+
   const deleteProject = (id: string) => {
     const updated = projects.filter((p) => p.id !== id);
+    setProjects(updated);
+    localStorage.setItem("research-projects", JSON.stringify(updated));
+  };
+
+  const moveProject = (index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= projects.length) return;
+    const updated = [...projects];
+    [updated[index], updated[target]] = [updated[target], updated[index]];
     setProjects(updated);
     localStorage.setItem("research-projects", JSON.stringify(updated));
   };
@@ -241,17 +268,27 @@ const AdminPage: React.FC = () => {
             + Add another link
           </button>
         </div>
-        <button onClick={addProject}>Add Project</button>
+        <div className="admin-form-actions">
+          <button onClick={addProject}>{editingId ? "Update Project" : "Add Project"}</button>
+          {editingId && <button className="admin-cancel" onClick={cancelEdit}>Cancel</button>}
+        </div>
       </div>
 
       <div className="admin-list">
         {projects.length === 0 ? (
           <p className="empty-state">No projects yet.</p>
         ) : (
-          projects.map((p) => (
+          projects.map((p, i) => (
             <div key={p.id} className="admin-item">
-              <span><strong>{p.title}</strong> — {p.author}</span>
-              <button onClick={() => deleteProject(p.id)}>Delete</button>
+              <div className="admin-item-info">
+                <span><strong>{p.title}</strong> — {p.author}</span>
+              </div>
+              <div className="admin-item-actions">
+                <button className="move-btn" onClick={() => moveProject(i, "up")} disabled={i === 0} title="Move up">↑</button>
+                <button className="move-btn" onClick={() => moveProject(i, "down")} disabled={i === projects.length - 1} title="Move down">↓</button>
+                <button onClick={() => editProject(p)}>Edit</button>
+                <button onClick={() => deleteProject(p.id)}>Delete</button>
+              </div>
             </div>
           ))
         )}
