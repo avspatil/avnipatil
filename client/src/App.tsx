@@ -83,7 +83,7 @@ const App: React.FC = () => {
           top: position.y,
           width: "12px",
           height: "12px",
-          backgroundColor: "#f6e27f",
+          backgroundColor: "#FFBF00",
           borderRadius: "50%",
           pointerEvents: "none",
           transform: "translate(-50%, -50%)",

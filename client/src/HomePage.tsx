@@ -123,12 +123,12 @@ const HomePage: React.FC = () => {
           top: position.y,
           width: "12px",
           height: "12px",
-          backgroundColor: "#f6e27f",
+          backgroundColor: "#FFBF00",
           borderRadius: "50%",
           pointerEvents: "none",
           transform: "translate(-50%, -50%)",
           zIndex: 9999,
-          opacity: 0.8,
+          opacity: 1,
         }}
       />
 
