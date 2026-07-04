@@ -150,7 +150,7 @@ const HomePage: React.FC = () => {
 
         <div className="hero-right">
           <p className="description">
-            I am a student passionate about building scalable systems...
+            I am a student passionate about building scalable systems ...
           </p>
 
           <button
