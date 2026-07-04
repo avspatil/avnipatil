@@ -1,52 +1,24 @@
 import { Router } from "express";
-import fs from "fs";
-import path from "path";
+import db from "../utils/db";
 
 const router = Router();
 
-const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
-const DATA_DIR = path.join(PROJECT_ROOT, "src", "data");
-const RESUME_FILE = path.join(DATA_DIR, "resume.json");
-
-function readResume(): { pdf: string; name: string } | null {
-  try {
-    return JSON.parse(fs.readFileSync(RESUME_FILE, "utf-8"));
-  } catch {
-    return null;
-  }
-}
-
-function writeResume(data: { pdf: string; name: string }) {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(RESUME_FILE, JSON.stringify(data, null, 2));
-}
-
-function deleteResume() {
-  try {
-    fs.unlinkSync(RESUME_FILE);
-  } catch {}
-}
-
 router.get("/", (req, res) => {
-  const resume = readResume();
-  if (!resume) {
-    return res.json({ pdf: null, name: null });
-  }
-  res.json(resume);
+  const row = db.prepare("SELECT * FROM resume WHERE id = 1").get() as any;
+  if (!row) return res.json({ pdf: null, name: null });
+  res.json({ pdf: row.pdf, name: row.name });
 });
 
 router.get("/pdf", (req, res) => {
-  const resume = readResume();
-  if (!resume || !resume.pdf) {
+  const row = db.prepare("SELECT * FROM resume WHERE id = 1").get() as any;
+  if (!row) {
     return res.status(404).send("No resume uploaded");
   }
-  const parts = resume.pdf.split(",");
+  const parts = row.pdf.split(",");
   const mime = parts[0].split(":")[1].split(";")[0];
   const buf = Buffer.from(parts[1], "base64");
   res.set("Content-Type", mime);
-  res.set("Content-Disposition", `inline; filename="${resume.name}"`);
+  res.set("Content-Disposition", `inline; filename="${row.name}"`);
   res.send(buf);
 });
 
@@ -55,12 +27,14 @@ router.post("/", (req, res) => {
   if (!pdf || !name) {
     return res.status(400).json({ error: "Missing pdf or name" });
   }
-  writeResume({ pdf, name });
+  db.prepare(
+    "INSERT INTO resume (id, pdf, name) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET pdf = excluded.pdf, name = excluded.name"
+  ).run(pdf, name);
   res.json({ success: true });
 });
 
 router.delete("/", (req, res) => {
-  deleteResume();
+  db.prepare("DELETE FROM resume WHERE id = 1").run();
   res.json({ success: true });
 });
 

@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import tableRoutes from "./routes/table";
 import resumeRoutes from "./routes/resume";
+import projectsRoutes from "./routes/projects";
+import newsRoutes from "./routes/news";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.use(
 app.use("/auth", authRoutes);
 app.use("/table", tableRoutes);
 app.use("/resume", resumeRoutes);
+app.use("/projects", projectsRoutes);
+app.use("/news", newsRoutes);
 
 app.get("/", (req, res) => {
   res.send("API running");

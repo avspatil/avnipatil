@@ -23,27 +23,14 @@ interface NewsEntry {
   tagColor: string;
 }
 
-function loadProjects(): ResearchProject[] {
-  const saved = localStorage.getItem("research-projects");
-  return saved ? JSON.parse(saved) : [];
-}
-
-function loadNews(): NewsEntry[] {
-  const saved = localStorage.getItem("personal-news");
-  return saved ? JSON.parse(saved) : [];
-}
-
 const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [projects, setProjects] = useState<ResearchProject[]>(loadProjects);
-  const [news, setNews] = useState<NewsEntry[]>(loadNews);
+  const [projects, setProjects] = useState<ResearchProject[]>([]);
+  const [news, setNews] = useState<NewsEntry[]>([]);
+
   useEffect(() => {
-    const onStorage = () => {
-      setProjects(loadProjects());
-      setNews(loadNews());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
+    fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
   }, []);
 
   useEffect(() => {

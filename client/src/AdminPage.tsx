@@ -41,28 +41,20 @@ const AdminPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const [projects, setProjects] = useState<ResearchProject[]>(() => {
-    const saved = localStorage.getItem("research-projects");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [form, setForm] = useState({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [news, setNews] = useState<NewsEntry[]>(() => {
-    const saved = localStorage.getItem("personal-news");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [news, setNews] = useState<NewsEntry[]>([]);
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
+  const [newsEditingId, setNewsEditingId] = useState<string | null>(null);
 
   const [resumeName, setResumeName] = useState("");
 
   useEffect(() => {
-    fetch(`/resume`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.name) setResumeName(data.name);
-      })
-      .catch(() => {});
+    fetch(`/resume`).then(r => r.json()).then(data => { if (data.name) setResumeName(data.name); }).catch(() => {});
+    fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
+    fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
   }, []);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,9 +84,7 @@ const AdminPage: React.FC = () => {
 
   const deleteResume = async () => {
     try {
-      await fetch(`/resume`, {
-        method: "DELETE",
-      });
+      await fetch(`/resume`, { method: "DELETE" });
       setResumeName("");
     } catch {
       alert("Failed to delete resume.");
@@ -127,26 +117,31 @@ const AdminPage: React.FC = () => {
     setForm({ ...form, links });
   };
 
-  const addProject = () => {
+  const addProject = async () => {
     if (!form.title.trim()) return;
     const links = form.links.filter((l) => l.url.trim());
-    let updated: ResearchProject[];
-    if (editingId) {
-      updated = projects.map((p) =>
-        p.id === editingId ? { ...p, ...form, links } : p
-      );
-      setEditingId(null);
-    } else {
-      const project: ResearchProject = {
-        id: crypto.randomUUID(),
-        ...form,
-        links,
-      };
-      updated = [...projects, project];
+    try {
+      if (editingId) {
+        await fetch(`/projects/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, links }),
+        });
+        setProjects(projects.map(p => p.id === editingId ? { ...p, ...form, links } : p));
+        setEditingId(null);
+      } else {
+        const id = crypto.randomUUID();
+        await fetch(`/projects`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...form, links }),
+        });
+        setProjects([...projects, { id, ...form, links }]);
+      }
+      setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
+    } catch {
+      alert("Failed to save project.");
     }
-    setProjects(updated);
-    localStorage.setItem("research-projects", JSON.stringify(updated));
-    setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
   };
 
   const editProject = (p: ResearchProject) => {
@@ -159,37 +154,77 @@ const AdminPage: React.FC = () => {
     setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
   };
 
-  const deleteProject = (id: string) => {
-    const updated = projects.filter((p) => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem("research-projects", JSON.stringify(updated));
+  const deleteProject = async (id: string) => {
+    try {
+      await fetch(`/projects/${id}`, { method: "DELETE" });
+      setProjects(projects.filter(p => p.id !== id));
+    } catch {
+      alert("Failed to delete project.");
+    }
   };
 
-  const moveProject = (index: number, direction: "up" | "down") => {
+  const moveProject = async (index: number, direction: "up" | "down") => {
     const target = direction === "up" ? index - 1 : index + 1;
     if (target < 0 || target >= projects.length) return;
     const updated = [...projects];
     [updated[index], updated[target]] = [updated[target], updated[index]];
     setProjects(updated);
-    localStorage.setItem("research-projects", JSON.stringify(updated));
+    try {
+      await Promise.all(updated.map((p, i) =>
+        fetch(`/projects/reorder/${p.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sort_order: i }),
+        })
+      ));
+    } catch {
+      alert("Failed to reorder.");
+    }
   };
 
-  const addNews = () => {
-    if (!newsForm.title.trim()) return;
-    const entry: NewsEntry = {
-      id: crypto.randomUUID(),
-      ...newsForm,
-    };
-    const updated = [...news, entry];
-    setNews(updated);
-    localStorage.setItem("personal-news", JSON.stringify(updated));
+  const editNews = (n: NewsEntry) => {
+    setNewsForm({ date: n.date, title: n.title, tag: n.tag, tagColor: n.tagColor });
+    setNewsEditingId(n.id);
+  };
+
+  const cancelNewsEdit = () => {
+    setNewsEditingId(null);
     setNewsForm({ date: "", title: "", tag: "", tagColor: "#000000" });
   };
 
-  const deleteNews = (id: string) => {
-    const updated = news.filter((n) => n.id !== id);
-    setNews(updated);
-    localStorage.setItem("personal-news", JSON.stringify(updated));
+  const addNews = async () => {
+    if (!newsForm.title.trim()) return;
+    try {
+      if (newsEditingId) {
+        await fetch(`/news/${newsEditingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newsForm),
+        });
+        setNews(news.map(n => n.id === newsEditingId ? { ...n, ...newsForm } : n));
+        setNewsEditingId(null);
+      } else {
+        const id = crypto.randomUUID();
+        await fetch(`/news`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...newsForm }),
+        });
+        setNews([...news, { id, ...newsForm }]);
+      }
+      setNewsForm({ date: "", title: "", tag: "", tagColor: "#000000" });
+    } catch {
+      alert("Failed to save news entry.");
+    }
+  };
+
+  const deleteNews = async (id: string) => {
+    try {
+      await fetch(`/news/${id}`, { method: "DELETE" });
+      setNews(news.filter(n => n.id !== id));
+    } catch {
+      alert("Failed to delete news.");
+    }
   };
 
   if (!authenticated) {
@@ -336,7 +371,10 @@ const AdminPage: React.FC = () => {
             title="Tag color"
           />
         </div>
-        <button onClick={addNews}>Add News</button>
+        <div className="admin-form-actions">
+          <button onClick={addNews}>{newsEditingId ? "Update News" : "Add News"}</button>
+          {newsEditingId && <button className="admin-cancel" onClick={cancelNewsEdit}>Cancel</button>}
+        </div>
       </div>
 
       <div className="admin-list">
@@ -345,9 +383,14 @@ const AdminPage: React.FC = () => {
         ) : (
           news.map((n) => (
             <div key={n.id} className="admin-item">
-              <span><strong>{n.title}</strong> — {n.date}</span>
-              <span style={{ color: n.tagColor, fontWeight: 600 }}>{n.tag}</span>
-              <button onClick={() => deleteNews(n.id)}>Delete</button>
+              <div className="admin-item-info">
+                <span><strong>{n.title}</strong> — {n.date}</span>
+                <span style={{ color: n.tagColor, fontWeight: 600, marginLeft: 8 }}>{n.tag}</span>
+              </div>
+              <div className="admin-item-actions">
+                <button onClick={() => editNews(n)}>Edit</button>
+                <button onClick={() => deleteNews(n.id)}>Delete</button>
+              </div>
             </div>
           ))
         )}
