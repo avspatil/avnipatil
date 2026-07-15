@@ -49,45 +49,64 @@ const AdminPage: React.FC = () => {
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
   const [newsEditingId, setNewsEditingId] = useState<string | null>(null);
 
-  const [resumeName, setResumeName] = useState("");
+  const [resumeUrl, setResumeUrl] = useState("");
+  const [resumeUrlInput, setResumeUrlInput] = useState("");
+  const [resumeError, setResumeError] = useState("");
 
   useEffect(() => {
-    fetch(`/resume`).then(r => r.json()).then(data => { if (data.name) setResumeName(data.name); }).catch(() => {});
+    fetch(`/resume`).then(r => r.json()).then(data => {
+      if (data.url) {
+        setResumeUrl(data.url);
+        setResumeUrlInput(data.url);
+      }
+    }).catch(() => {});
     fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
   }, []);
 
-  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file");
+  const isValidUrl = (string: string): boolean => {
+    try {
+      const url = new URL(string);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const handleResumeSave = async () => {
+    setResumeError("");
+    const trimmed = resumeUrlInput.trim();
+    if (!trimmed) {
+      setResumeError("Please enter a resume URL.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      try {
-        const res = await fetch(`/resume`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdf: dataUrl, name: file.name }),
-        });
-        if (!res.ok) throw new Error("Upload failed");
-        setResumeName(file.name);
-      } catch {
-        alert("Failed to upload resume. Check that the server is running.");
+    if (!isValidUrl(trimmed)) {
+      setResumeError("Please enter a valid URL (e.g. https://drive.google.com/...).");
+      return;
+    }
+    try {
+      const res = await fetch(`/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Save failed");
       }
-    };
-    reader.readAsDataURL(file);
+      setResumeUrl(trimmed);
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : "Failed to save resume link. Check that the server is running.");
+    }
   };
 
   const deleteResume = async () => {
     try {
       await fetch(`/resume`, { method: "DELETE" });
-      setResumeName("");
+      setResumeUrl("");
+      setResumeUrlInput("");
     } catch {
-      alert("Failed to delete resume.");
+      alert("Failed to delete resume link.");
     }
   };
 
@@ -334,11 +353,23 @@ const AdminPage: React.FC = () => {
       <h2>Resume</h2>
 
       <div className="admin-form">
-        <input type="file" accept=".pdf" onChange={handleResumeUpload} />
-        {resumeName && (
+        <input
+          type="url"
+          placeholder="Resume Google Drive Link"
+          value={resumeUrlInput}
+          onChange={(e) => { setResumeUrlInput(e.target.value); setResumeError(""); }}
+          onKeyDown={(e) => e.key === "Enter" && handleResumeSave()}
+        />
+        {resumeError && <p className="admin-error">{resumeError}</p>}
+        <div className="admin-form-actions">
+          <button onClick={handleResumeSave}>Save Link</button>
+          {resumeUrl && <button className="admin-cancel" onClick={deleteResume}>Remove Link</button>}
+        </div>
+        {resumeUrl && (
           <div className="admin-resume-info">
-            <span>Uploaded: {resumeName}</span>
-            <button onClick={deleteResume}>Delete Resume</button>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+              Saved: <a href={resumeUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#144188" }}>{resumeUrl}</a>
+            </span>
           </div>
         )}
       </div>

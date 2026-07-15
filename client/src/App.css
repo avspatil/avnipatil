@@ -232,6 +232,13 @@ html, body {
   border-color: #c0a850;
 }
 
+.resume-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  border-color: #c5aa3f;
+}
+
 /* SECTIONS */
 section {
   scroll-margin-top: 80px;

@@ -30,9 +30,14 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS resume (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    pdf TEXT NOT NULL,
-    name TEXT NOT NULL
+    url TEXT NOT NULL DEFAULT ''
   );
 `);
+
+try {
+  db.exec(`ALTER TABLE resume ADD COLUMN url TEXT NOT NULL DEFAULT ''`);
+} catch {
+  // Column already exists
+}
 
 export default db;

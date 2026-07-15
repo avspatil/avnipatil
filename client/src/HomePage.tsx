@@ -27,8 +27,10 @@ const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [news, setNews] = useState<NewsEntry[]>([]);
+  const [resumeUrl, setResumeUrl] = useState("");
 
   useEffect(() => {
+    fetch(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
     fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
   }, []);
@@ -142,8 +144,11 @@ const HomePage: React.FC = () => {
 
           <button
             className="resume-btn"
+            disabled={!resumeUrl}
             onClick={() => {
-              window.open(`/resume/pdf`, "_blank");
+              if (resumeUrl) {
+                window.open(resumeUrl, "_blank", "noopener,noreferrer");
+              }
             }}
           >
             Resume

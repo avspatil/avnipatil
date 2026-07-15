@@ -5,31 +5,23 @@ const router = Router();
 
 router.get("/", (req, res) => {
   const row = db.prepare("SELECT * FROM resume WHERE id = 1").get() as any;
-  if (!row) return res.json({ pdf: null, name: null });
-  res.json({ pdf: row.pdf, name: row.name });
-});
-
-router.get("/pdf", (req, res) => {
-  const row = db.prepare("SELECT * FROM resume WHERE id = 1").get() as any;
-  if (!row) {
-    return res.status(404).send("No resume uploaded");
-  }
-  const parts = row.pdf.split(",");
-  const mime = parts[0].split(":")[1].split(";")[0];
-  const buf = Buffer.from(parts[1], "base64");
-  res.set("Content-Type", mime);
-  res.set("Content-Disposition", `inline; filename="${row.name}"`);
-  res.send(buf);
+  if (!row) return res.json({ url: "" });
+  res.json({ url: row.url || "" });
 });
 
 router.post("/", (req, res) => {
-  const { pdf, name } = req.body;
-  if (!pdf || !name) {
-    return res.status(400).json({ error: "Missing pdf or name" });
+  const { url } = req.body;
+  if (!url || typeof url !== "string" || !url.trim()) {
+    return res.status(400).json({ error: "Missing or empty URL" });
+  }
+  try {
+    new URL(url);
+  } catch {
+    return res.status(400).json({ error: "Invalid URL format" });
   }
   db.prepare(
-    "INSERT INTO resume (id, pdf, name) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET pdf = excluded.pdf, name = excluded.name"
-  ).run(pdf, name);
+    "INSERT INTO resume (id, url) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET url = excluded.url"
+  ).run(url.trim());
   res.json({ success: true });
 });
 
