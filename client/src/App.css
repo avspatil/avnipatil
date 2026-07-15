@@ -204,6 +204,38 @@ html, body {
   border-color: #d4c070;
 }
 
+/* EMAIL POPUP */
+.email-wrapper {
+  position: relative;
+}
+
+.email-popup {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.email-popup input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+  padding: 6px 10px;
+  background: transparent;
+  text-align: center;
+  cursor: text;
+  width: fit-content;
+}
+
 /* RIGHT */
 .hero-right {
   flex: 1;
@@ -294,13 +326,13 @@ section {
 
 .project-meta {
   font-size: 14px;
-  color: #aaa;
+  color: #666;
   margin-bottom: 6px;
 }
 
 .project-desc {
   font-size: 15px;
-  color: #999;
+  color: #777;
   line-height: 1.5;
   margin-bottom: 6px;
 }

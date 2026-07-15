@@ -28,6 +28,7 @@ const HomePage: React.FC = () => {
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [news, setNews] = useState<NewsEntry[]>([]);
   const [resumeUrl, setResumeUrl] = useState("");
+  const [showEmail, setShowEmail] = useState(false);
 
   useEffect(() => {
     fetch(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
@@ -132,7 +133,14 @@ const HomePage: React.FC = () => {
           </p>
 
           <div className="icons">
-            <a href="mailto:example@email.com" className="icon">✉</a>
+            <div className="email-wrapper">
+              {showEmail && (
+                <div className="email-popup">
+                  <input type="text" value="avpatil@g.hmc.edu" readOnly />
+                </div>
+              )}
+              <button className="icon" onClick={() => setShowEmail(!showEmail)}>✉</button>
+            </div>
             <a href="https://github.com/avspatil" target="_blank" className="icon">⌘</a>
           </div>
         </div>
