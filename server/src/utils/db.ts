@@ -33,6 +33,13 @@ export async function initDb() {
       url TEXT NOT NULL DEFAULT ''
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS site_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    )
+  `;
 }
 
 export default sql;

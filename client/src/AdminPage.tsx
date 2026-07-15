@@ -53,6 +53,9 @@ const AdminPage: React.FC = () => {
   const [resumeUrlInput, setResumeUrlInput] = useState("");
   const [resumeError, setResumeError] = useState("");
 
+  const [description, setDescription] = useState("");
+  const [descriptionSaved, setDescriptionSaved] = useState(false);
+
   useEffect(() => {
     fetch(`/resume`).then(r => r.json()).then(data => {
       if (data.url) {
@@ -62,6 +65,9 @@ const AdminPage: React.FC = () => {
     }).catch(() => {});
     fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
+    fetch(`/config`).then(r => r.json()).then(data => {
+      if (data.description) setDescription(data.description);
+    }).catch(() => {});
   }, []);
 
   const isValidUrl = (string: string): boolean => {
@@ -107,6 +113,20 @@ const AdminPage: React.FC = () => {
       setResumeUrlInput("");
     } catch {
       alert("Failed to delete resume link.");
+    }
+  };
+
+  const saveDescription = async () => {
+    try {
+      await fetch(`/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "description", value: description }),
+      });
+      setDescriptionSaved(true);
+      setTimeout(() => setDescriptionSaved(false), 2000);
+    } catch {
+      alert("Failed to save description.");
     }
   };
 
@@ -274,6 +294,21 @@ const AdminPage: React.FC = () => {
         <h1>Admin Panel</h1>
         <button onClick={() => navigate("/")}>Back to site</button>
       </div>
+
+      <h2>About / Description</h2>
+
+      <div className="admin-form">
+        <textarea
+          placeholder="Profile description shown on the landing page"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <div className="admin-form-actions">
+          <button onClick={saveDescription}>{descriptionSaved ? "Saved!" : "Save Description"}</button>
+        </div>
+      </div>
+
+      <hr className="admin-section-divider" />
 
       <h2>Research & Projects</h2>
 

@@ -9,6 +9,7 @@ export default defineConfig({
       "/resume": "http://localhost:3001",
       "/projects": "http://localhost:3001",
       "/news": "http://localhost:3001",
+      "/config": "http://localhost:3001",
       "/auth": "http://localhost:3001",
       "/table": "http://localhost:3001",
     },

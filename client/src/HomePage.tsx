@@ -29,11 +29,15 @@ const HomePage: React.FC = () => {
   const [news, setNews] = useState<NewsEntry[]>([]);
   const [resumeUrl, setResumeUrl] = useState("");
   const [showEmail, setShowEmail] = useState(false);
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     fetch(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
     fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
+    fetch(`/config`).then(r => r.json()).then(data => {
+      if (data.description) setDescription(data.description);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -147,7 +151,7 @@ const HomePage: React.FC = () => {
 
         <div className="hero-right">
           <p className="description">
-            I am a student passionate about building scalable systems ...
+            {description || "\u00A0"}
           </p>
 
           <button
