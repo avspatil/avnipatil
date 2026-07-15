@@ -1,6 +1,7 @@
 import express from "express";
 const session: any = require("express-session");
 import dotenv from "dotenv";
+import { initDb } from "./utils/db";
 import authRoutes from "./routes/auth";
 import tableRoutes from "./routes/table";
 import resumeRoutes from "./routes/resume";
@@ -10,6 +11,10 @@ import newsRoutes from "./routes/news";
 dotenv.config();
 
 const app = express();
+
+initDb().catch((err) => {
+  console.error("Failed to initialize database:", err);
+});
 
 app.use((req, res, next) => {
   const origin = process.env.CORS_ORIGIN || req.headers.origin;

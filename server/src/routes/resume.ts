@@ -1,15 +1,15 @@
 import { Router } from "express";
-import db from "../utils/db";
+import sql from "../utils/db";
 
 const router = Router();
 
-router.get("/", (req, res) => {
-  const row = db.prepare("SELECT * FROM resume WHERE id = 1").get() as any;
-  if (!row) return res.json({ url: "" });
-  res.json({ url: row.url || "" });
+router.get("/", async (req, res) => {
+  const rows = await sql`SELECT * FROM resume WHERE id = 1`;
+  if (rows.length === 0) return res.json({ url: "" });
+  res.json({ url: rows[0].url || "" });
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string" || !url.trim()) {
     return res.status(400).json({ error: "Missing or empty URL" });
@@ -19,14 +19,15 @@ router.post("/", (req, res) => {
   } catch {
     return res.status(400).json({ error: "Invalid URL format" });
   }
-  db.prepare(
-    "INSERT INTO resume (id, url) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET url = excluded.url"
-  ).run(url.trim());
+  await sql`
+    INSERT INTO resume (id, url) VALUES (1, ${url.trim()})
+    ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url
+  `;
   res.json({ success: true });
 });
 
-router.delete("/", (req, res) => {
-  db.prepare("DELETE FROM resume WHERE id = 1").run();
+router.delete("/", async (req, res) => {
+  await sql`DELETE FROM resume WHERE id = 1`;
   res.json({ success: true });
 });
 
