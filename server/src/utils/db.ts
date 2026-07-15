@@ -1,6 +1,21 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, NeonQueryFunction } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL!);
+let _neon: NeonQueryFunction<false, false>;
+
+function getNeon(): NeonQueryFunction<false, false> {
+  if (!_neon) {
+    _neon = neon(process.env.DATABASE_URL!);
+  }
+  return _neon;
+}
+
+type SqlTag = (strings: TemplateStringsArray, ...values: any[]) => Promise<Record<string, any>[]>;
+
+function sql(strings: TemplateStringsArray, ...values: any[]): Promise<Record<string, any>[]> {
+  return getNeon()(strings, ...values) as Promise<Record<string, any>[]>;
+}
+
+export { sql as getSql };
 
 export async function initDb() {
   await sql`
@@ -41,5 +56,3 @@ export async function initDb() {
     )
   `;
 }
-
-export default sql;

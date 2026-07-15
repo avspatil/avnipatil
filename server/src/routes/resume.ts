@@ -1,10 +1,10 @@
 import { Router } from "express";
-import sql from "../utils/db";
+import { getSql } from "../utils/db";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
-  const rows = await sql`SELECT * FROM resume WHERE id = 1`;
+  const rows = await getSql`SELECT * FROM resume WHERE id = 1`;
   if (rows.length === 0) return res.json({ url: "" });
   res.json({ url: rows[0].url || "" });
 });
@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
   } catch {
     return res.status(400).json({ error: "Invalid URL format" });
   }
-  await sql`
+  await getSql`
     INSERT INTO resume (id, url) VALUES (1, ${url.trim()})
     ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url
   `;
@@ -27,7 +27,7 @@ router.post("/", async (req, res) => {
 });
 
 router.delete("/", async (req, res) => {
-  await sql`DELETE FROM resume WHERE id = 1`;
+  await getSql`DELETE FROM resume WHERE id = 1`;
   res.json({ success: true });
 });
 
