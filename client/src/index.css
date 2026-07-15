@@ -107,3 +107,16 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+@keyframes ripple-ring {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+  }
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
