@@ -1,21 +1,21 @@
 import { Router } from "express";
-import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
+router.get("/me", requireAuth, (req, res) => {
+  res.json({ authenticated: true });
+});
+
 router.post("/login", async (req: any, res) => {
-  const { username, password } = req.body;
+  const { username, passwordHash } = req.body;
 
   if (username !== process.env.ADMIN_USERNAME) {
     return res.status(401).json({ error: "Invalid username" });
   }
 
-  const match = await bcrypt.compare(
-    password,
-    process.env.ADMIN_PASSWORD_HASH!
-  );
-
-  if (!match) {
+  if (passwordHash !== process.env.ADMIN_PASSWORD_HASH) {
     return res.status(401).json({ error: "Invalid password" });
   }
 

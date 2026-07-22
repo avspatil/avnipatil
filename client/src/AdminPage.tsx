@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "./api";
 import "./App.css";
 
 interface ProjectLink {
@@ -24,7 +25,6 @@ interface NewsEntry {
   tagColor: string;
 }
 
-const ADMIN_PASSWORD = "3724cc3ec590b6bace45c87db054f85e80c409234f5f1a2ccdd55204a9767b85";
 const generateSHA256 = async (input: string) => {
     const utf8 = new TextEncoder().encode(input);
     const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
@@ -35,9 +35,8 @@ const generateSHA256 = async (input: string) => {
 
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
-  const [authenticated, setAuthenticated] = useState(() => {
-    return sessionStorage.getItem("admin-auth") === "true";
-  });
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -57,18 +56,27 @@ const AdminPage: React.FC = () => {
   const [descriptionSaved, setDescriptionSaved] = useState(false);
 
   useEffect(() => {
-    fetch(`/resume`).then(r => r.json()).then(data => {
+    api(`/auth/me`).then(r => {
+      if (r.ok) {
+        setAuthenticated(true);
+        loadData();
+      }
+    }).finally(() => setCheckingAuth(false));
+  }, []);
+
+  const loadData = () => {
+    api(`/resume`).then(r => r.json()).then(data => {
       if (data.url) {
         setResumeUrl(data.url);
         setResumeUrlInput(data.url);
       }
     }).catch(() => {});
-    fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
-    fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
-    fetch(`/config`).then(r => r.json()).then(data => {
+    api(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
+    api(`/news`).then(r => r.json()).then(setNews).catch(() => {});
+    api(`/config`).then(r => r.json()).then(data => {
       if (data.description) setDescription(data.description);
     }).catch(() => {});
-  }, []);
+  };
 
   const isValidUrl = (string: string): boolean => {
     try {
@@ -91,7 +99,7 @@ const AdminPage: React.FC = () => {
       return;
     }
     try {
-      const res = await fetch(`/resume`, {
+      const res = await api(`/resume`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmed }),
@@ -102,42 +110,60 @@ const AdminPage: React.FC = () => {
       }
       setResumeUrl(trimmed);
     } catch (err) {
-      setResumeError(err instanceof Error ? err.message : "Failed to save resume link. Check that the server is running.");
+      setResumeError(err instanceof Error ? err.message : "Failed to save resume link.");
     }
   };
 
   const deleteResume = async () => {
     try {
-      await fetch(`/resume`, { method: "DELETE" });
+      const res = await api(`/resume`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Delete failed");
+      }
       setResumeUrl("");
       setResumeUrlInput("");
-    } catch {
-      alert("Failed to delete resume link.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete resume link.");
     }
   };
 
   const saveDescription = async () => {
     try {
-      await fetch(`/config`, {
+      const res = await api(`/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "description", value: description }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Save failed");
+      }
       setDescriptionSaved(true);
       setTimeout(() => setDescriptionSaved(false), 2000);
-    } catch {
-      alert("Failed to save description.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save description.");
     }
   };
 
   const handleLogin = async () => {
+    setError("");
     const hash = await generateSHA256(password);
-    if (hash === ADMIN_PASSWORD) {
-      sessionStorage.setItem("admin-auth", "true");
+    try {
+      const res = await api(`/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "admin", passwordHash: hash }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error || "Login failed");
+        return;
+      }
       setAuthenticated(true);
-      setError("");
-    } else {
-      setError("Incorrect password");
+      loadData();
+    } catch {
+      setError("Could not reach server. Please try again.");
     }
   };
 
@@ -161,25 +187,33 @@ const AdminPage: React.FC = () => {
     const links = form.links.filter((l) => l.url.trim());
     try {
       if (editingId) {
-        await fetch(`/projects/${editingId}`, {
+        const res = await api(`/projects/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...form, links }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Update failed");
+        }
         setProjects(projects.map(p => p.id === editingId ? { ...p, ...form, links } : p));
         setEditingId(null);
       } else {
         const id = crypto.randomUUID();
-        await fetch(`/projects`, {
+        const res = await api(`/projects`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id, ...form, links }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Save failed");
+        }
         setProjects([...projects, { id, ...form, links }]);
       }
       setForm({ title: "", author: "", description: "", date: "", links: [{ label: "", url: "" }] });
-    } catch {
-      alert("Failed to save project.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save project.");
     }
   };
 
@@ -195,10 +229,14 @@ const AdminPage: React.FC = () => {
 
   const deleteProject = async (id: string) => {
     try {
-      await fetch(`/projects/${id}`, { method: "DELETE" });
+      const res = await api(`/projects/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Delete failed");
+      }
       setProjects(projects.filter(p => p.id !== id));
-    } catch {
-      alert("Failed to delete project.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete project.");
     }
   };
 
@@ -209,15 +247,20 @@ const AdminPage: React.FC = () => {
     [updated[index], updated[target]] = [updated[target], updated[index]];
     setProjects(updated);
     try {
-      await Promise.all(updated.map((p, i) =>
-        fetch(`/projects/reorder/${p.id}`, {
+      const results = await Promise.all(updated.map((p, i) =>
+        api(`/projects/reorder/${p.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sort_order: i }),
         })
       ));
-    } catch {
-      alert("Failed to reorder.");
+      const failed = results.find(r => !r.ok);
+      if (failed) {
+        const data = await failed.json().catch(() => null);
+        throw new Error(data?.error || "Reorder failed");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reorder.");
     }
   };
 
@@ -235,36 +278,59 @@ const AdminPage: React.FC = () => {
     if (!newsForm.title.trim()) return;
     try {
       if (newsEditingId) {
-        await fetch(`/news/${newsEditingId}`, {
+        const res = await api(`/news/${newsEditingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newsForm),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Update failed");
+        }
         setNews(news.map(n => n.id === newsEditingId ? { ...n, ...newsForm } : n));
         setNewsEditingId(null);
       } else {
         const id = crypto.randomUUID();
-        await fetch(`/news`, {
+        const res = await api(`/news`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id, ...newsForm }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Save failed");
+        }
         setNews([...news, { id, ...newsForm }]);
       }
       setNewsForm({ date: "", title: "", tag: "", tagColor: "#000000" });
-    } catch {
-      alert("Failed to save news entry.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save news entry.");
     }
   };
 
   const deleteNews = async (id: string) => {
     try {
-      await fetch(`/news/${id}`, { method: "DELETE" });
+      const res = await api(`/news/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Delete failed");
+      }
       setNews(news.filter(n => n.id !== id));
-    } catch {
-      alert("Failed to delete news.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete news.");
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="admin-login">
+        <div className="admin-login-box">
+          <h1>Admin Panel</h1>
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authenticated) {
     return (
@@ -288,11 +354,20 @@ const AdminPage: React.FC = () => {
     );
   }
 
+  const handleLogout = async () => {
+    await api(`/auth/logout`, { method: "POST" });
+    setAuthenticated(false);
+    setPassword("");
+  };
+
   return (
     <div className="admin-page">
       <div className="admin-header">
         <h1>Admin Panel</h1>
-        <button onClick={() => navigate("/")}>Back to site</button>
+        <div>
+          <button onClick={() => navigate("/")}>Back to site</button>
+          <button onClick={handleLogout} style={{ marginLeft: 8 }}>Logout</button>
+        </div>
       </div>
 
       <h2>About / Description</h2>

@@ -33,11 +33,17 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "50mb" }));
 
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev_secret",
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+    },
   })
 );
 

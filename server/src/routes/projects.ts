@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSql } from "../utils/db";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -8,7 +9,7 @@ router.get("/", async (req, res) => {
   res.json(rows.map((r) => ({ ...r, links: JSON.parse(r.links as string) })));
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   const { id, title, author, description, date, links } = req.body;
   if (!id || !title) return res.status(400).json({ error: "Missing id or title" });
   const result = await getSql`SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM projects`;
@@ -20,7 +21,7 @@ router.post("/", async (req, res) => {
   res.json({ success: true });
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, async (req, res) => {
   const { title, author, description, date, links } = req.body;
   await getSql`
     UPDATE projects SET title = ${title}, author = ${author}, description = ${description},
@@ -29,12 +30,12 @@ router.put("/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   await getSql`DELETE FROM projects WHERE id = ${req.params.id}`;
   res.json({ success: true });
 });
 
-router.put("/reorder/:id", async (req, res) => {
+router.put("/reorder/:id", requireAuth, async (req, res) => {
   const { sort_order } = req.body;
   await getSql`UPDATE projects SET sort_order = ${sort_order} WHERE id = ${req.params.id}`;
   res.json({ success: true });

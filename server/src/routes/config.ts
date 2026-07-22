@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSql } from "../utils/db";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -12,7 +13,7 @@ router.get("/", async (req, res) => {
   res.json(config);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   const { key, value } = req.body;
   if (!key || typeof key !== "string") {
     return res.status(400).json({ error: "Missing key" });

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSql } from "../utils/db";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -9,7 +10,7 @@ router.get("/", async (req, res) => {
   res.json({ url: rows[0].url || "" });
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string" || !url.trim()) {
     return res.status(400).json({ error: "Missing or empty URL" });
@@ -26,7 +27,7 @@ router.post("/", async (req, res) => {
   res.json({ success: true });
 });
 
-router.delete("/", async (req, res) => {
+router.delete("/", requireAuth, async (req, res) => {
   await getSql`DELETE FROM resume WHERE id = 1`;
   res.json({ success: true });
 });

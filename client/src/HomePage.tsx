@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { api } from "./api";
 import "./App.css";
 
 interface ProjectLink {
@@ -32,10 +33,10 @@ const HomePage: React.FC = () => {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    fetch(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
-    fetch(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
-    fetch(`/news`).then(r => r.json()).then(setNews).catch(() => {});
-    fetch(`/config`).then(r => r.json()).then(data => {
+    api(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
+    api(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
+    api(`/news`).then(r => r.json()).then(setNews).catch(() => {});
+    api(`/config`).then(r => r.json()).then(data => {
       if (data.description) setDescription(data.description);
     }).catch(() => {});
   }, []);
