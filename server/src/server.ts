@@ -2,6 +2,7 @@ import express from "express";
 const session: any = require("express-session");
 import dotenv from "dotenv";
 import { initDb } from "./utils/db";
+import { NeonSessionStore } from "./utils/sessionStore";
 import authRoutes from "./routes/auth";
 import tableRoutes from "./routes/table";
 import resumeRoutes from "./routes/resume";
@@ -17,9 +18,16 @@ initDb().catch((err) => {
   console.error("Failed to initialize database:", err);
 });
 
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
+
 app.use((req, res, next) => {
-  const origin = process.env.CORS_ORIGIN || req.headers.origin;
-  if (origin) {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
   }
   res.header("Access-Control-Allow-Credentials", "true");
@@ -37,12 +45,14 @@ const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   session({
+    store: new NeonSessionStore(),
     secret: process.env.SESSION_SECRET || "dev_secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
       sameSite: isProduction ? "none" : "lax",
       secure: isProduction,
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
