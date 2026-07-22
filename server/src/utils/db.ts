@@ -4,7 +4,11 @@ let _neon: NeonQueryFunction<false, false>;
 
 function getNeon(): NeonQueryFunction<false, false> {
   if (!_neon) {
-    _neon = neon(process.env.DATABASE_URL!);
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    _neon = neon(url);
   }
   return _neon;
 }
