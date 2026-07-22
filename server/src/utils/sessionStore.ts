@@ -2,22 +2,6 @@ import { Store } from "express-session";
 import { getSql } from "./db";
 
 export class NeonSessionStore extends Store {
-  constructor() {
-    super();
-    this.init();
-  }
-
-  private async init() {
-    await getSql`
-      CREATE TABLE IF NOT EXISTS sessions (
-        sid TEXT PRIMARY KEY,
-        sess JSONB NOT NULL,
-        expire TIMESTAMP NOT NULL
-      )
-    `;
-    await getSql`CREATE INDEX IF NOT EXISTS sessions_expire_idx ON sessions (expire)`;
-  }
-
   get(sid: string, callback: (err: any, session?: any) => void): void {
     getSql`SELECT sess FROM sessions WHERE sid = ${sid} AND expire > NOW()`
       .then((rows) => {

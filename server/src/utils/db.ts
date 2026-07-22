@@ -55,4 +55,13 @@ export async function initDb() {
       value TEXT NOT NULL DEFAULT ''
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS sessions (
+      sid TEXT PRIMARY KEY,
+      sess JSONB NOT NULL,
+      expire TIMESTAMP NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS sessions_expire_idx ON sessions (expire)`;
 }
