@@ -1,8 +1,6 @@
 import express from "express";
-const session: any = require("express-session");
 import dotenv from "dotenv";
 import { initDb } from "./utils/db";
-import { NeonSessionStore } from "./utils/sessionStore";
 import authRoutes from "./routes/auth";
 import tableRoutes from "./routes/table";
 import resumeRoutes from "./routes/resume";
@@ -42,22 +40,6 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "50mb" }));
 
-const isProduction = process.env.NODE_ENV === "production";
-
-app.use(
-  session({
-    store: new NeonSessionStore(),
-    secret: process.env.SESSION_SECRET || "dev_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
-
 app.use("/auth", authRoutes);
 app.use("/table", tableRoutes);
 app.use("/resume", resumeRoutes);
@@ -74,7 +56,6 @@ app.get("/debug", (req, res) => {
     hasDbUrl: !!process.env.DATABASE_URL,
     hasAdminUser: !!process.env.ADMIN_USERNAME,
     hasPasswordHash: !!process.env.ADMIN_PASSWORD_HASH,
-    hasSessionSecret: !!process.env.SESSION_SECRET,
     hasCorsOrigin: !!process.env.CORS_ORIGIN,
     nodeEnv: process.env.NODE_ENV,
   });

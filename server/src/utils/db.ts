@@ -61,11 +61,9 @@ export async function initDb() {
   `;
 
   await sql`
-    CREATE TABLE IF NOT EXISTS sessions (
-      sid TEXT PRIMARY KEY,
-      sess JSONB NOT NULL,
-      expire TIMESTAMP NOT NULL
+    CREATE TABLE IF NOT EXISTS auth_tokens (
+      token TEXT PRIMARY KEY,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `;
-  await sql`CREATE INDEX IF NOT EXISTS sessions_expire_idx ON sessions (expire)`;
 }

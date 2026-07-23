@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "./api";
+import { api, setToken, clearToken, getToken } from "./api";
 import "./App.css";
 
 interface ProjectLink {
@@ -56,10 +56,16 @@ const AdminPage: React.FC = () => {
   const [descriptionSaved, setDescriptionSaved] = useState(false);
 
   useEffect(() => {
+    if (!getToken()) {
+      setCheckingAuth(false);
+      return;
+    }
     api(`/auth/me`).then(r => {
       if (r.ok) {
         setAuthenticated(true);
         loadData();
+      } else {
+        clearToken();
       }
     }).finally(() => setCheckingAuth(false));
   }, []);
@@ -160,6 +166,8 @@ const AdminPage: React.FC = () => {
         setError(data?.error || "Login failed");
         return;
       }
+      const { token } = await res.json();
+      setToken(token);
       setAuthenticated(true);
       loadData();
     } catch {
@@ -356,6 +364,7 @@ const AdminPage: React.FC = () => {
 
   const handleLogout = async () => {
     await api(`/auth/logout`, { method: "POST" });
+    clearToken();
     setAuthenticated(false);
     setPassword("");
   };

@@ -1,4 +1,6 @@
 import { Router } from "express";
+import crypto from "crypto";
+import { getSql } from "../utils/db";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -20,13 +22,17 @@ router.post("/login", async (req: any, res) => {
     return res.status(401).json({ error: "Invalid password" });
   }
 
-  req.session.user = "admin";
+  const token = crypto.randomBytes(32).toString("hex");
+  await getSql`INSERT INTO auth_tokens (token) VALUES (${token})`;
 
-  res.json({ message: "Logged in" });
+  res.json({ token });
 });
 
-router.post("/logout", (req: any, res) => {
-  req.session.destroy(() => {});
+router.post("/logout", requireAuth, async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (token) {
+    await getSql`DELETE FROM auth_tokens WHERE token = ${token}`;
+  }
   res.json({ message: "Logged out" });
 });
 
