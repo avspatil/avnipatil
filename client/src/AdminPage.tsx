@@ -48,9 +48,11 @@ const AdminPage: React.FC = () => {
   const [newsForm, setNewsForm] = useState({ date: "", title: "", tag: "", tagColor: "#000000" });
   const [newsEditingId, setNewsEditingId] = useState<string | null>(null);
 
-  const [resumeUrl, setResumeUrl] = useState("");
-  const [resumeUrlInput, setResumeUrlInput] = useState("");
+  const [resumeFilename, setResumeFilename] = useState("");
+  const [resumeHasPdf, setResumeHasPdf] = useState(false);
   const [resumeError, setResumeError] = useState("");
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeSaved, setResumeSaved] = useState(false);
 
   const [description, setDescription] = useState("");
   const [descriptionSaved, setDescriptionSaved] = useState(false);
@@ -72,10 +74,8 @@ const AdminPage: React.FC = () => {
 
   const loadData = () => {
     api(`/resume`).then(r => r.json()).then(data => {
-      if (data.url) {
-        setResumeUrl(data.url);
-        setResumeUrlInput(data.url);
-      }
+      setResumeHasPdf(data.hasPdf || false);
+      setResumeFilename(data.filename || "");
     }).catch(() => {});
     api(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     api(`/news`).then(r => r.json()).then(setNews).catch(() => {});
@@ -84,39 +84,47 @@ const AdminPage: React.FC = () => {
     }).catch(() => {});
   };
 
-  const isValidUrl = (string: string): boolean => {
-    try {
-      const url = new URL(string);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  };
-
-  const handleResumeSave = async () => {
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     setResumeError("");
-    const trimmed = resumeUrlInput.trim();
-    if (!trimmed) {
-      setResumeError("Please enter a resume URL.");
+    if (file.type !== "application/pdf") {
+      setResumeError("Only PDF files are accepted.");
+      e.target.value = "";
       return;
     }
-    if (!isValidUrl(trimmed)) {
-      setResumeError("Please enter a valid URL (e.g. https://drive.google.com/...).");
+    if (file.size > 10 * 1024 * 1024) {
+      setResumeError("File must be under 10 MB.");
+      e.target.value = "";
       return;
     }
+    setResumeUploading(true);
     try {
-      const res = await api(`/resume`, {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await api(`/resume/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
+        body: JSON.stringify({ file: base64, filename: file.name }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Save failed");
+        throw new Error(data?.error || "Upload failed");
       }
-      setResumeUrl(trimmed);
+      const result = await res.json();
+      setResumeHasPdf(true);
+      setResumeFilename(result.filename || file.name);
+      setResumeSaved(true);
+      setTimeout(() => setResumeSaved(false), 2000);
     } catch (err) {
-      setResumeError(err instanceof Error ? err.message : "Failed to save resume link.");
+      setResumeError(err instanceof Error ? err.message : "Failed to upload resume.");
+    } finally {
+      setResumeUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -127,10 +135,10 @@ const AdminPage: React.FC = () => {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error || "Delete failed");
       }
-      setResumeUrl("");
-      setResumeUrlInput("");
+      setResumeHasPdf(false);
+      setResumeFilename("");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete resume link.");
+      alert(err instanceof Error ? err.message : "Failed to delete resume.");
     }
   };
 
@@ -472,24 +480,31 @@ const AdminPage: React.FC = () => {
       <h2>Resume</h2>
 
       <div className="admin-form">
-        <input
-          type="url"
-          placeholder="Resume Google Drive Link"
-          value={resumeUrlInput}
-          onChange={(e) => { setResumeUrlInput(e.target.value); setResumeError(""); }}
-          onKeyDown={(e) => e.key === "Enter" && handleResumeSave()}
-        />
+        <label className="admin-upload-label">
+          <input
+            type="file"
+            accept=".pdf,application/pdf"
+            onChange={handleResumeUpload}
+            disabled={resumeUploading}
+            style={{ display: "none" }}
+            id="resume-file-input"
+          />
+          <span className="admin-upload-btn" style={{ opacity: resumeUploading ? 0.6 : 1 }}>
+            {resumeUploading ? "Uploading..." : resumeHasPdf ? "Replace PDF" : "Upload PDF"}
+          </span>
+        </label>
         {resumeError && <p className="admin-error">{resumeError}</p>}
-        <div className="admin-form-actions">
-          <button onClick={handleResumeSave}>Save Link</button>
-          {resumeUrl && <button className="admin-cancel" onClick={deleteResume}>Remove Link</button>}
-        </div>
-        {resumeUrl && (
+        {resumeSaved && <p style={{ color: "#2d7d46", margin: "4px 0" }}>Resume saved!</p>}
+        {resumeHasPdf && (
           <div className="admin-resume-info">
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-              Saved: <a href={resumeUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#144188" }}>{resumeUrl}</a>
+              Current: <strong>{resumeFilename}</strong>
             </span>
+            <button className="admin-cancel" onClick={deleteResume}>Remove</button>
           </div>
+        )}
+        {!resumeHasPdf && !resumeUploading && (
+          <p style={{ color: "#888", fontSize: "0.9em", marginTop: 4 }}>No resume uploaded yet.</p>
         )}
       </div>
 

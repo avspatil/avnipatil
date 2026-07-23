@@ -49,9 +49,18 @@ export async function initDb() {
   await sql`
     CREATE TABLE IF NOT EXISTS resume (
       id INTEGER PRIMARY KEY,
-      url TEXT NOT NULL DEFAULT ''
+      url TEXT NOT NULL DEFAULT '',
+      pdf_data BYTEA,
+      pdf_filename TEXT
     )
   `;
+
+  try {
+    await sql`ALTER TABLE resume ADD COLUMN IF NOT EXISTS pdf_data BYTEA`;
+  } catch { /* column already exists */ }
+  try {
+    await sql`ALTER TABLE resume ADD COLUMN IF NOT EXISTS pdf_filename TEXT`;
+  } catch { /* column already exists */ }
 
   await sql`
     CREATE TABLE IF NOT EXISTS site_config (

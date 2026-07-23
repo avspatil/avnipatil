@@ -28,12 +28,12 @@ const HomePage: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [news, setNews] = useState<NewsEntry[]>([]);
-  const [resumeUrl, setResumeUrl] = useState("");
+  const [resumeHasPdf, setResumeHasPdf] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    api(`/resume`).then(r => r.json()).then(data => { if (data.url) setResumeUrl(data.url); }).catch(() => {});
+    api(`/resume`).then(r => r.json()).then(data => { if (data.hasPdf) setResumeHasPdf(true); }).catch(() => {});
     api(`/projects`).then(r => r.json()).then(setProjects).catch(() => {});
     api(`/news`).then(r => r.json()).then(setNews).catch(() => {});
     api(`/config`).then(r => r.json()).then(data => {
@@ -157,10 +157,11 @@ const HomePage: React.FC = () => {
 
           <button
             className="resume-btn"
-            disabled={!resumeUrl}
+            disabled={!resumeHasPdf}
             onClick={() => {
-              if (resumeUrl) {
-                window.open(resumeUrl, "_blank", "noopener,noreferrer");
+              if (resumeHasPdf) {
+                const API = import.meta.env.VITE_API_URL || "";
+                window.open(`${API}/resume/download`, "_blank", "noopener,noreferrer");
               }
             }}
           >

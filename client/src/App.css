@@ -716,3 +716,24 @@ section {
 .admin-resume-info button:hover {
   background: #fdd;
 }
+
+/* ADMIN UPLOAD */
+.admin-upload-label {
+  cursor: pointer;
+}
+
+.admin-upload-btn {
+  display: inline-block;
+  padding: 10px 18px;
+  background: var(--accent);
+  border: 1px solid #c5aa3f;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.admin-upload-btn:hover {
+  transform: translateY(-2px);
+  border-color: #c0a850;
+}
