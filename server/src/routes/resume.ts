@@ -5,12 +5,12 @@ import { requireAuth } from "../middleware/auth";
 const router = Router();
 
 router.get("/", async (_req, res) => {
-  const rows = await getSql`SELECT id, url, pdf_filename FROM resume WHERE id = 1`;
+  const rows = await getSql`SELECT id, url, pdf_filename, (pdf_data IS NOT NULL) AS has_pdf FROM resume WHERE id = 1`;
   if (rows.length === 0) return res.json({ url: "", hasPdf: false, filename: "" });
   const row = rows[0];
   res.json({
     url: row.url || "",
-    hasPdf: !!row.pdf_data,
+    hasPdf: row.has_pdf === true || row.has_pdf === "t",
     filename: row.pdf_filename || "",
   });
 });
