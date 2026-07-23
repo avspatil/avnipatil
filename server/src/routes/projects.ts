@@ -5,8 +5,12 @@ import { requireAuth } from "../middleware/auth";
 const router = Router();
 
 router.get("/", async (req, res) => {
-  const rows = await getSql`SELECT * FROM projects ORDER BY sort_order ASC, created_at ASC`;
-  res.json(rows.map((r) => ({ ...r, links: JSON.parse(r.links as string) })));
+  try {
+    const rows = await getSql`SELECT * FROM projects ORDER BY sort_order ASC, created_at ASC`;
+    res.json(rows.map((r) => ({ ...r, links: JSON.parse(r.links as string) })));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Database error" });
+  }
 });
 
 router.post("/", requireAuth, async (req, res) => {

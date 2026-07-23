@@ -69,4 +69,15 @@ app.get("/", (req, res) => {
   res.send("API running");
 });
 
+app.get("/debug", (req, res) => {
+  res.json({
+    hasDbUrl: !!process.env.DATABASE_URL,
+    hasAdminUser: !!process.env.ADMIN_USERNAME,
+    hasPasswordHash: !!process.env.ADMIN_PASSWORD_HASH,
+    hasSessionSecret: !!process.env.SESSION_SECRET,
+    hasCorsOrigin: !!process.env.CORS_ORIGIN,
+    nodeEnv: process.env.NODE_ENV,
+  });
+});
+
 export default app;
